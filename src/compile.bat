@@ -1,0 +1,1 @@
+g++ %1 gl.c -o %~n1.exe -lSDL2main -lSDL2 -lopengl32
