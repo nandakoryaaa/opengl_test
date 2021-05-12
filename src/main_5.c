@@ -128,12 +128,12 @@ int main(int argc, char * argv[]) {
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_handle);
 	glVertexAttribPointer(
 		0, 2, GL_FLOAT, GL_FALSE,
-		5 * sizeof(GL_FLOAT), NULL
+		5 * sizeof(float), NULL
 	);
 
 	glVertexAttribPointer(
 		1, 3, GL_FLOAT, GL_FALSE,
-		5 * sizeof(GL_FLOAT), (void *)(2 * sizeof(GL_FLOAT))
+		5 * sizeof(float), (void *)(2 * sizeof(float))
 	);
 
 	SDL_Event event;
