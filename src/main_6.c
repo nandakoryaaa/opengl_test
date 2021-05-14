@@ -6,6 +6,10 @@
 #include "gl.h"
 #include <SDL2/SDL_opengl.h>
 
+typedef struct {
+	float x, y, tx, ty;
+} Vertex;
+
 char string_buffer[1024];
 char log_buffer[1024];
 
@@ -37,6 +41,17 @@ GLuint load_shader(
 	}
 
 	return shader;
+}
+
+void convert_surface_rgb(SDL_Surface *surf) {
+	unsigned char *pixels = (unsigned char *) surf->pixels;
+	unsigned char *end = pixels + surf->h * surf->pitch;
+	while (pixels < end) {
+		unsigned char tmp = pixels[0];
+		pixels[0] = pixels[2];
+		pixels[2] = tmp;
+		pixels += surf->format->BytesPerPixel;
+	}
 }
 
 int main(int argc, char * argv[]) {
@@ -104,17 +119,41 @@ int main(int argc, char * argv[]) {
 	glClearColor(1.0, 1.0, 1.0, 0.0);
 	glViewport(0, 0, width, height);
 
-	float vertices[] = {
-		-0.8f, -0.8f, 1.0f, 0.0f, 0.0f,
-		0.8f, -0.8f, 0.0f, 1.0f, 0.0f,
-		0.0f,  0.8f, 0.0f, 0.0f, 1.0f
+	Vertex vertices[] = {
+		{ -0.8f, -0.8f, 0.0f, 1.0f },
+		{ 0.8f, -0.8f, 1.0f, 1.0f },
+		{ 0.0f,  0.8f, 0.5f, 0.0f }
 	};
+
+	SDL_Surface *bmpSurface = SDL_LoadBMP("textures/mona-256.bmp");
+	if (!bmpSurface) {
+		printf("Error: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	convert_surface_rgb(bmpSurface);
+
+	GLuint texture_handle;
+	glGenTextures(1, &texture_handle);
+	glBindTexture(GL_TEXTURE_2D, texture_handle);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+		bmpSurface->w, bmpSurface->h, 0,
+		GL_RGB, GL_UNSIGNED_BYTE,
+		bmpSurface->pixels
+	);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	GLuint vertex_buffer_handle;
 	glGenBuffers(1, &vertex_buffer_handle);
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_handle);
+
 	glBufferData(
-		GL_ARRAY_BUFFER, 15 * sizeof(float), vertices,
+		GL_ARRAY_BUFFER, sizeof(vertices), vertices,
 		GL_STATIC_DRAW
 	);
 
@@ -122,18 +161,13 @@ int main(int argc, char * argv[]) {
 
 	glGenVertexArrays(1, &vertex_array_handle);
 	glBindVertexArray(vertex_array_handle);
+
 	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_handle);
 	glVertexAttribPointer(
-		0, 2, GL_FLOAT, GL_FALSE,
-		5 * sizeof(float), NULL
-	);
-
-	glVertexAttribPointer(
-		1, 3, GL_FLOAT, GL_FALSE,
-		5 * sizeof(float), (void *)(2 * sizeof(float))
+		0, 4, GL_FLOAT, GL_FALSE,
+		0, NULL
 	);
 
 	SDL_Event event;
@@ -155,8 +189,6 @@ int main(int argc, char * argv[]) {
 		}
 
 		glDrawArrays(GL_TRIANGLES, 0, 3);
-
-		vertices[0] = 0;
 
 		if (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {

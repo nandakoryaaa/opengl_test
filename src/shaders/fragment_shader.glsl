@@ -1,9 +1,12 @@
 #version 430
 
-in vec3 Color;
+in vec2 texCoord;
+out vec4 fragColor;
 
-out vec3 FragColor;
+uniform sampler2D sampler;
+uniform float progress;
 
 void main() {
-	FragColor = Color;
+	fragColor = texture(sampler, texCoord)
+		* (1 + sin(3.1415926 * 2 * progress)) / 2;
 }
